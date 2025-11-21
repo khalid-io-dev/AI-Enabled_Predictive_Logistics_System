@@ -71,7 +71,8 @@ raw = (spark.readStream
 
 # parse JSON: value column contains JSON string -> parse into columns
 json_col = F.from_json(F.col("value"), stream_schema)
-parsed = raw.select(F.col("value"), F.col("value").cast("string"), json_col.alias("data")).select("value", "data.*")
+# FIX: Avoid selecting "value" twice.
+parsed = raw.select(json_col.alias("data")).select("data.*")
 
 # tolerant parsing: parse timestamp formats as in batch pipeline
 def enrich_batch(df):

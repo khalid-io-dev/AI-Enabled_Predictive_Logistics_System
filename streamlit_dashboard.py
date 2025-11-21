@@ -47,7 +47,7 @@ st.sidebar.header("Connection & Query")
 MONGO_URI_DEFAULT = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
 mongo_uri = st.sidebar.text_input("MongoDB URI", value=MONGO_URI_DEFAULT)
 mongo_db = st.sidebar.text_input("MongoDB database", value=os.environ.get("MONGO_DB", "dataco_analytics"))
-mongo_collection = st.sidebar.text_input("Collection (aggregates)", value=os.environ.get("MONGO_COLLECTION_AGG", "window_aggregates"))
+mongo_collection = st.sidebar.text_input("Collection (aggregates)", value=os.environ.get("MONGO_COLLECTION_AGG", "batch_aggregates"))
 
 # time filter defaults
 now = dt.datetime.utcnow()
@@ -66,14 +66,14 @@ st.sidebar.caption("Press 'Refresh now' after changing filters.")
 # -------------------------
 # DB helpers
 # -------------------------
-@st.cache_data(ttl=30)
+@st.cache_resource(ttl=30)
 def get_mongo_collection(uri: str, db: str, coll_name: str) -> Collection:
     client = MongoClient(uri, serverSelectionTimeoutMS=5000)
     _db = client[db]
     return _db[coll_name]
 
 @st.cache_data(ttl=30)
-def fetch_aggregates(coll: Collection, dt_from: dt.datetime, dt_to: dt.datetime, market: Optional[str] = None) -> pd.DataFrame:
+def fetch_aggregates(_coll: Collection, dt_from: dt.datetime, dt_to: dt.datetime, market: Optional[str] = None) -> pd.DataFrame:
     """
     Query Mongo collection and return DataFrame.
     """
@@ -81,7 +81,7 @@ def fetch_aggregates(coll: Collection, dt_from: dt.datetime, dt_to: dt.datetime,
     q = {"ts": {"$gte": dt_from, "$lte": dt_to}}
     if market:
         q["market"] = market
-    cursor = coll.find(q, projection={"_id": 0})
+    cursor = _coll.find(q, projection={"_id": 0})
     df = pd.DataFrame(list(cursor))
     if df.empty:
         return df
